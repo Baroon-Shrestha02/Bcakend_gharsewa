@@ -1,7 +1,7 @@
 import Rating from "../models/ratingModel.js";
 import Worker from "../models/workerModel.js";
-import AppError from "../Utils/appError.js";
-import asyncErrorHandler from "../Utils/asyncErrorHandler.js";
+import AppError from "../utils/appError.js";
+import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 
 export const addRating = asyncErrorHandler(async (req, res, next) => {
   const { workerId, rating, review } = req.body;
