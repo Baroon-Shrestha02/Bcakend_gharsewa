@@ -19,7 +19,7 @@ import {
   getWorkerRequests,
   getWorkers,
   requestWorkerForJob,
-} from "../controllers/Roles/Users/user.BookingController.js";
+} from "../controllers/Roles/Users/user.bookingController.js";
 
 const router = express.Router();
 
