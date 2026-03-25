@@ -4,7 +4,7 @@ dotenv.config();
 import cloudinary from "cloudinary";
 
 import app from "./app.js";
-import createAdminIfNotExists from "./Utils/CreateAdmin.js";
+import createAdminIfNotExists from "./utils/createAdmin.js";
 import Database from "./config/database.js";
 
 const PORT = process.env.PORT || 3000;
