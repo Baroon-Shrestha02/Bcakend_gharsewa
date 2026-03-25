@@ -45,7 +45,7 @@ const options = {
       { name: "Booking", description: "Job booking and reservations" },
     ],
   },
-  apis: [path.join(__dirname, "../Routes/*.js")],
+  apis: [path.join(__dirname, "../routes/*.js")],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
