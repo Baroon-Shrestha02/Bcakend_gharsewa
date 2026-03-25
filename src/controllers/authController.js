@@ -6,7 +6,7 @@ import User from "../models/userModel.js";
 import generateOTP from "../utils/otpGenerate.js";
 import sendEmail from "../utils/sendEmail.js";
 
-// register
+//register user
 export const registerUser = asyncErrorHandler(async (req, res, next) => {
   const {
     firstname,
@@ -24,18 +24,13 @@ export const registerUser = asyncErrorHandler(async (req, res, next) => {
     return next(new AppError("Please fill all required fields.", 400));
   }
 
-  // prevent admin creation from public API
   const allowedRoles = ["user", "worker"];
-
   const userRole = allowedRoles.includes(role) ? role : "user";
 
   const existingUser = await User.findOne({
     $or: [{ email }, { phone }],
   });
-
-  if (existingUser) {
-    return next(new AppError("User already exists.", 400));
-  }
+  if (existingUser) return next(new AppError("User already exists.", 400));
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -49,19 +44,17 @@ export const registerUser = asyncErrorHandler(async (req, res, next) => {
     role: userRole,
   };
 
-  // worker specific fields
   if (userRole === "worker") {
     if (!skill_type) {
       return next(new AppError("Worker must select a skill type.", 400));
     }
-
     newUserData.skill_type = skill_type;
     newUserData.experience_years = experience_years || 0;
   }
 
   const user = await User.create(newUserData);
 
-  // Generate sign up otp
+  // generate signup OTP
   const otp = generateOTP();
   user.otp = otp;
   user.otpExpire = Date.now() + 5 * 60 * 1000;
@@ -80,7 +73,7 @@ export const registerUser = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-// verify signup otp
+// verify signup OTP
 export const verifySignupOTP = asyncErrorHandler(async (req, res, next) => {
   const { email, otp } = req.body;
 
@@ -102,25 +95,20 @@ export const verifySignupOTP = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-// login to send otp
+// login
 export const login = asyncErrorHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password)
     return next(new AppError("Email and password are required.", 400));
 
-  // find user
   const user = await User.findOne({ email }).select("+password");
+  if (!user) return next(new AppError("Invalid credentials.", 401));
 
-  if (!user) {
-    return next(new AppError("Invalid credentials.", 401));
-  }
-
-  // compare password
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return next(new AppError("Invalid credentials", 401));
 
-  // genrate otp login
+  // generate login OTP
   const otp = generateOTP();
   user.otp = otp;
   user.otpExpire = Date.now() + 5 * 60 * 1000;
@@ -134,7 +122,7 @@ export const login = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-// verify login otp
+// verify login OTP & Bearer token
 export const verifyOTP = asyncErrorHandler(async (req, res, next) => {
   const { email, otp } = req.body;
 
@@ -149,32 +137,25 @@ export const verifyOTP = asyncErrorHandler(async (req, res, next) => {
   user.otpExpire = undefined;
   await user.save();
 
-  // create token
+  // generate JWT token
   const token = jwt.sign(
     {
       id: user._id,
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" },
+    { expiresIn: "1d" }
   );
 
-  res
-    .cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    })
-    .status(200)
-    .json({
-      status: "success",
-      message: "Login successful",
-      role: user.role,
-    });
+  res.status(200).json({
+    status: "success",
+    message: "Login successful",
+    token, // bearrer token for frontend/mobile
+    role: user.role,
+  });
 });
 
-// forget password to send otp
+// forgot password OTP
 export const forgotPassword = asyncErrorHandler(async (req, res, next) => {
   const { email } = req.body;
 
@@ -194,7 +175,7 @@ export const forgotPassword = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-// reset password
+// reset pasword
 export const resetPassword = asyncErrorHandler(async (req, res, next) => {
   const { email, otp, newPassword } = req.body;
 
@@ -217,7 +198,7 @@ export const resetPassword = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-// get logged user
+//  get logged user
 export const getLoggedUser = asyncErrorHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
@@ -225,17 +206,10 @@ export const getLoggedUser = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-//logout
+//  logout
 export const logout = asyncErrorHandler(async (req, res, next) => {
-  res
-    .clearCookie("token", {
-      httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
-    })
-    .status(200)
-    .json({
-      success: true,
-      message: "Logged out successfully",
-    });
+  res.status(200).json({
+    success: true,
+    message: "Logged out successfully. Please remove the token from client.",
+  });
 });

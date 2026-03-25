@@ -3,7 +3,6 @@ import cors from "cors";
 import globalErrorHandler from "./middlewares/errorHandler.js";
 import swaggerSpec from "./config/swagger.js";
 import fileUpload from "express-fileupload";
-import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 
 import userRoutes from "./routes/userRoutes.js";
@@ -36,8 +35,8 @@ const app = express();
 
 app.use(
   cors({
-    origin: true,
-    credentials: true,
+    origin: "*",
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
@@ -50,7 +49,6 @@ app.use(
     tempFileDir: "/tmp/",
   }),
 );
-app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
