@@ -1,5 +1,5 @@
-import Rating from "../Models/ratingModel.js";
-import Worker from "../Models/workerModel.js";
+import Rating from "../models/ratingModel.js";
+import Worker from "../models/workerModel.js";
 import AppError from "../Utils/appError.js";
 import asyncErrorHandler from "../Utils/asyncErrorHandler.js";
 
