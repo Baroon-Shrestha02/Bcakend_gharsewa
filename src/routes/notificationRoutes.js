@@ -3,7 +3,7 @@ import {
   createNotification,
   getUserNotifications,
   markRead,
-} from "../Controllers/notificationController.js";
+} from "../controllers/notificationController.js";
 import protect from "../middlewares/verifyUser.js";
 
 const router = express.Router();

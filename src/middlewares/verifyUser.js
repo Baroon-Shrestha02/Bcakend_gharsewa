@@ -24,7 +24,6 @@ const protect = asyncErrorHandler(async (req, res, next) => {
 
   // 🔹 Get user from database
   const user = await User.findById(decoded.id).select("-password");
-  const worker = await Worker.findById(decoded.id).select("-password");
 
   if (!user) {
     return next(new AppError("User not found.", 404));

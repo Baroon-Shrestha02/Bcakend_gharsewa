@@ -8,7 +8,7 @@ import {
   verifyOTP,
   forgotPassword,
   resetPassword,
-} from "../Controllers/authController.js";
+} from "../controllers/authController.js";
 import protect from "../middlewares/verifyUser.js";
 
 const router = express.Router();

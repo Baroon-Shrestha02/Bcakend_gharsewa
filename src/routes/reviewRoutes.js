@@ -2,7 +2,7 @@ import express from "express";
 import {
   addRating,
   getWorkerReviews,
-} from "../Controllers/ratingController.js";
+} from "../controllers/ratingController.js";
 import protect from "../middlewares/verifyUser.js";
 import { restrictTo } from "../middlewares/restictAccess.js";
 
