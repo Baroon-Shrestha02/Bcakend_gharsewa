@@ -19,7 +19,7 @@ const options = {
         description: "Development server",
       },
       {
-        url: "https://gharsewa-api.com",
+        url: "https://bcakend-gharsewa.onrender.com",
         description: "Hosted testing server",
       },
     ],
