@@ -184,7 +184,7 @@ router.post("/reset-password", resetPassword);
  *     summary: Get currently logged in user
  *     tags: [Auth]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Successfully fetched logged in user
