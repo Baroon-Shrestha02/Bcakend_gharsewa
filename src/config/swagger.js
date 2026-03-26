@@ -13,6 +13,7 @@ const options = {
       version: "1.0.0",
       description: "API documentation for GharSewa - Home services platform",
     },
+
     servers: [
       {
         url: "http://localhost:3000",
@@ -20,21 +21,24 @@ const options = {
       },
       {
         url: "https://bcakend-gharsewa.onrender.com",
-        description: "Hosted testing server",
+        description: "Production server",
       },
     ],
 
+
     components: {
       securitySchemes: {
-        cookieAuth: {
-          type: "apiKey",
-          in: "cookie",
-          name: "token",
-          description: "JWT token stored in httpOnly cookie (set via login)",
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Use Authorization header: Bearer <token>",
         },
       },
     },
+
     security: [],
+
     tags: [
       { name: "Auth", description: "Authentication and session management" },
       { name: "Admin", description: "Admin-only management operations" },
@@ -45,6 +49,7 @@ const options = {
       { name: "Booking", description: "Job booking and reservations" },
     ],
   },
+
   apis: [path.join(__dirname, "../routes/*.js")],
 };
 
