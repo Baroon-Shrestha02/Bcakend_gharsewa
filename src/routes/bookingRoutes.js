@@ -30,7 +30,7 @@ const router = express.Router();
  *     summary: Book a job by ID
  *     tags: [Booking]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -67,7 +67,7 @@ router.post("/book-job/:id", protect, restrictTo("worker"), jobBooking);
  *     summary: Get bookings of the respective user
  *     tags: [Booking]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of bookings

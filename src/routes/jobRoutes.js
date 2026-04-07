@@ -32,7 +32,7 @@ const router = express.Router();
  *     summary: Create a new job (Admin only)
  *     tags: [Jobs]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -106,7 +106,7 @@ router.get("/get-jobs", getAllJobs); // this one is okay
  *     summary: Delete a job by ID (Admin only)
  *     tags: [Jobs]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -133,7 +133,7 @@ router.delete("/delete/:id", protect, restrictTo("admin"), deleteJob); // not ad
  *     summary: Update a job by ID (Admin only)
  *     tags: [Jobs]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -218,7 +218,7 @@ router.get("/get-categories", getCategories);
  *     summary: Get jobs posted by logged-in user
  *     tags: [Jobs]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of user's jobs
@@ -260,7 +260,7 @@ router.get("/getmyjobs", protect, getMyJobs);
  *     summary: Delete a job created by the logged-in user
  *     tags: [Jobs]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -294,7 +294,7 @@ router.delete("/delete-job/:id", protect, deleteMyJob);
  *     summary: Update a job created by the logged-in user
  *     tags: [Jobs]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id

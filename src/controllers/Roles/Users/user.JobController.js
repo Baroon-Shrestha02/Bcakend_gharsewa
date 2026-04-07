@@ -1,11 +1,13 @@
 import Booking from "../../../models/job/bookingModel.js";
 import Category from "../../../models/job/categoryModel.js";
+import SubCategory from "../../../models/job/subCategoryModel.js";
 import Job from "../../../models/job/jobModel.js";
 import AppError from "../../../utils/appError.js";
 import asyncErrorHandler from "../../../utils/asyncErrorHandler.js";
 import { uploadImages } from "../../../utils/imageUploader.js";
 
 // <<<<-----User's Job related CRUD Operations---->>>>
+// addding updated with sub dynamic sub cateogry
 export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
   let {
     name,
@@ -30,7 +32,8 @@ export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
     !duration ||
     !location ||
     !workDate ||
-    !workTime
+    !workTime ||
+    !workersNeeded
   ) {
     return next(new AppError("All fields are required", 400));
   }
@@ -39,13 +42,50 @@ export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
     subCategories = JSON.parse(subCategories);
   }
 
-  let existingCategory = await Category.findOne({ name: category });
-
-  if (!existingCategory) {
-    existingCategory = await Category.create({ name: category });
+  if (!Array.isArray(subCategories) || subCategories.length === 0) {
+    return next(new AppError("At least one subcategory is required", 400));
   }
 
-  let uploadedImage = null;
+  // normalize subcategory values
+  subCategories = subCategories
+    .map((item) => item?.trim())
+    .filter((item) => item);
+
+  if (subCategories.length === 0) {
+    return next(new AppError("Valid subcategories are required", 400));
+  }
+
+  // find or create category
+  let existingCategory = await Category.findOne({
+    name: category.trim(),
+  });
+
+  if (!existingCategory) {
+    existingCategory = await Category.create({
+      name: category.trim(),
+    });
+  }
+
+  // find/create subcategories under this category
+  const subCategoryIds = [];
+
+  for (const subCatName of subCategories) {
+    let existingSubCategory = await SubCategory.findOne({
+      name: subCatName,
+      category: existingCategory._id,
+    });
+
+    if (!existingSubCategory) {
+      existingSubCategory = await SubCategory.create({
+        name: subCatName,
+        category: existingCategory._id,
+      });
+    }
+
+    subCategoryIds.push(existingSubCategory._id);
+  }
+
+  let uploadedImage = [];
 
   if (req.files && req.files.image) {
     uploadedImage = await uploadImages(req.files.image);
@@ -54,48 +94,61 @@ export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
   const job = await Job.create({
     name,
     category: existingCategory._id,
-    subCategories,
+    subCategories: subCategoryIds,
     wage,
     description,
     duration,
     location,
     image: uploadedImage,
-    postedBy: userId, // 👈 important
+    postedBy: userId,
     workersNeeded,
     workTime,
     workDate,
+    status: "pending",
+    assignedWorkers: [],
   });
+
+  const populatedJob = await Job.findById(job._id)
+    .populate("category", "name")
+    .populate("subCategories", "name");
 
   res.status(201).json({
     success: true,
-    job,
+    message: "Job created successfully",
+    job: populatedJob,
   });
 });
 
+// works
 export const getMyJobs = asyncErrorHandler(async (req, res, next) => {
   const userId = req.user.id;
 
-  const jobs = await Job.find({ postedBy: userId }).sort({ createdAt: -1 });
+  const jobs = await Job.find({ postedBy: userId })
+    .populate("category", "name")
+    .populate("subCategories", "name")
+    .sort({ createdAt: -1 });
 
   const jobsWithApplications = await Promise.all(
     jobs.map(async (job) => {
-      const appliedWorkers = await Booking.countDocuments({ job: job._id });
+      const appliedWorkers = await Booking.countDocuments({
+        job: job._id,
+      });
 
       return {
         ...job.toObject(),
         appliedWorkers,
-        workersNeeded: job.workersNeeded,
       };
     }),
   );
 
-  res.json({
+  res.status(200).json({
     success: true,
     count: jobsWithApplications.length,
     jobs: jobsWithApplications,
   });
 });
 
+//delete works.
 export const deleteMyJob = asyncErrorHandler(async (req, res, next) => {
   const { id } = req.params;
 
@@ -116,6 +169,7 @@ export const deleteMyJob = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
+//pedning
 export const updateMyJob = asyncErrorHandler(async (req, res, next) => {
   const { id } = req.params;
 

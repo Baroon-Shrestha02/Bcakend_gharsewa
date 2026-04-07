@@ -1,3 +1,5 @@
+// Completed controller and documentation
+
 import cloudinary from "cloudinary";
 import User from "../../../models/userModel.js";
 import asyncErrorHandler from "../../../utils/asyncErrorHandler.js";

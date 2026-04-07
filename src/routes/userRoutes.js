@@ -21,7 +21,7 @@ const router = express.Router();
  *     summary: Get all users (Admin only)
  *     tags: [Admin]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of all users
@@ -73,7 +73,7 @@ router.get("/all-users", protect, restrictTo("admin"), getAllUser);
  *     summary: Delete inactive user (Admin only)
  *     tags: [Admin]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -100,7 +100,7 @@ router.delete("/delete/:id", protect, restrictTo("admin"), deleteInactiveUser);
  *     summary: Update logged-in user's profile
  *     tags: [User]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -136,7 +136,7 @@ router.patch("/update-profile", protect, updateProfile);
  *     summary: Toggle logged-in user's active status
  *     tags: [User]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Active status updated successfully

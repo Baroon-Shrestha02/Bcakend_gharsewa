@@ -16,42 +16,53 @@ const jobSchema = new mongoose.Schema(
 
     subCategories: [
       {
-        type: String,
-        trim: true,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "SubCategory",
+        required: true,
       },
     ],
 
     wage: {
       type: Number,
       required: true,
+      min: 0,
     },
 
     description: {
       type: String,
       required: true,
+      trim: true,
     },
 
     duration: {
       type: String,
       required: true,
+      trim: true,
     },
+
     workDate: {
       type: Date,
       required: true,
       validate: {
         validator: function (value) {
-          return value >= new Date().setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return value >= today;
         },
         message: "Work date cannot be in the past",
       },
     },
+
     workTime: {
       type: String,
       enum: ["morning", "daytime", "evening"],
+      required: true,
     },
+
     location: {
       type: String,
       required: true,
+      trim: true,
     },
 
     image: [
@@ -60,18 +71,33 @@ const jobSchema = new mongoose.Schema(
         url: String,
       },
     ],
+
     postedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      // required: true,
+      required: true,
     },
+
     workersNeeded: {
       type: Number,
       required: true,
       min: 1,
+      default: 1,
+    },
+
+    assignedWorkers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    status: {
+      type: String,
+      enum: ["pending", "active", "completed", "cancelled"],
+      default: "pending",
     },
   },
-
   { timestamps: true },
 );
 

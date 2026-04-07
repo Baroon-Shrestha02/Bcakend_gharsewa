@@ -65,7 +65,7 @@ router.get("/:id", getWorkerById);
  *     summary: Update worker details
  *     tags: [Workers]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -108,7 +108,7 @@ router.patch("/update/me", protect, restrictTo("worker"), updateWorkerProfile);
  *     summary: Delete a worker
  *     tags: [Workers]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id

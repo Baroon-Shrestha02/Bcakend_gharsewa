@@ -18,7 +18,7 @@ const router = express.Router();
  *     summary: Create a new staff member (Admin only)
  *     tags: [Staff]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -50,7 +50,7 @@ router.post("/", protect, restrictTo("admin"), createStaff);
  *     summary: Get all staff members
  *     tags: [Staff]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of staff members
@@ -68,7 +68,7 @@ router.get("/", protect, restrictTo("admin", "staff"), getAllStaff);
  *     summary: Get staff member by ID
  *     tags: [Staff]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -95,7 +95,7 @@ router.get("/:id", protect, restrictTo("admin", "staff"), getStaffById);
  *     summary: Update staff member details
  *     tags: [Staff]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -136,7 +136,7 @@ router.patch("/:id", protect, restrictTo("admin", "staff"), updateStaff);
  *     summary: Delete a staff member (Admin only)
  *     tags: [Staff]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id

@@ -1,3 +1,5 @@
+// completed controller and routes
+
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import AppError from "../utils/appError.js";
@@ -80,11 +82,15 @@ export const verifySignupOTP = asyncErrorHandler(async (req, res, next) => {
   const user = await User.findOne({ email });
   if (!user) return next(new AppError("User not found", 404));
 
-  if (user.otp !== otp) return next(new AppError("Invalid OTP", 400));
-  if (Date.now() > user.otpExpire)
-    return next(new AppError("OTP expired", 400));
+  if (user.otp?.toString() !== otp?.toString()) {
+    return next(new AppError("Invalid OTP", 400));
+  }
 
-  user.isVerified = true;
+  if (Date.now() > user.otpExpire) {
+    return next(new AppError("OTP expired", 400));
+  }
+
+  user.emailVerified = true;
   user.otp = undefined;
   user.otpExpire = undefined;
   await user.save();
@@ -108,7 +114,10 @@ export const login = asyncErrorHandler(async (req, res, next) => {
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return next(new AppError("Invalid credentials", 401));
 
-  // generate login OTP
+  if (!user.emailVerified) {
+    return next(new AppError("Please verify your email first.", 403));
+  }
+
   const otp = generateOTP();
   user.otp = otp;
   user.otpExpire = Date.now() + 5 * 60 * 1000;
@@ -144,7 +153,7 @@ export const verifyOTP = asyncErrorHandler(async (req, res, next) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn: "1d" },
   );
 
   res.status(200).json({

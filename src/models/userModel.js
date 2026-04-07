@@ -38,6 +38,11 @@ const UserSchema = new mongoose.Schema(
       trim: true,
     },
 
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
     password: {
       type: String,
       required: true,
@@ -93,9 +98,10 @@ const UserSchema = new mongoose.Schema(
       default: 0,
     },
 
-    isAvailable: {
-      type: Boolean,
-      default: true,
+    workerStatus: {
+      type: String,
+      enum: ["available", "busy", "unavailable"],
+      default: "available",
     },
 
     location: {

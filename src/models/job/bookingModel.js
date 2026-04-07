@@ -7,10 +7,13 @@ const bookingSchema = new mongoose.Schema(
       ref: "Job",
       required: true,
     },
+
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
+
     worker: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -19,9 +22,10 @@ const bookingSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "completed"],
+      enum: ["pending", "accepted", "rejected", "active", "completed"],
       default: "pending",
     },
+
     requestedAt: {
       type: Date,
       default: Date.now,
@@ -29,6 +33,8 @@ const bookingSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+bookingSchema.index({ job: 1, worker: 1 }, { unique: true });
 
 const Booking = mongoose.model("Booking", bookingSchema);
 
