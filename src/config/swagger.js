@@ -25,7 +25,6 @@ const options = {
       },
     ],
 
-
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -47,6 +46,7 @@ const options = {
       { name: "Workers", description: "Worker directory and management" },
       { name: "Staff", description: "Staff management operations" },
       { name: "Booking", description: "Job booking and reservations" },
+      { name: "Categories", description: "Categories and Sub Categories" },
     ],
   },
 

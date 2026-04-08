@@ -114,17 +114,12 @@ const UserSchema = new mongoose.Schema(
       },
     },
 
-    kyc_document: [
-      {
-        public_id: String,
-        url: String,
-      },
-    ],
-
+    // KYC status kept here so existing guards (isVerified, kycStatus checks)
+    // across all controllers continue to work without any changes
     kycStatus: {
       type: String,
-      enum: ["pending", "verified", "rejected"],
-      default: "pending",
+      enum: ["not submitted", "pending", "verified", "rejected"],
+      default: "not submitted",
     },
 
     isVerified: {

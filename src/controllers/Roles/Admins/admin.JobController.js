@@ -146,15 +146,4 @@ const deleteJob = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-// <----- Apart from CRUD Operations------>
-
-const getCategories = asyncErrorHandler(async (req, res, next) => {
-  const cat = await Category.distinct("name");
-
-  res.status(200).json({
-    success: true,
-    cat,
-  });
-});
-
-export { createJob, getAllJobs, deleteJob, updateJob, getCategories };
+export { createJob, getAllJobs, deleteJob, updateJob };

@@ -14,13 +14,12 @@ const jobSchema = new mongoose.Schema(
       required: true,
     },
 
-    subCategories: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "SubCategory",
-        required: true,
-      },
-    ],
+    // Stored as { "0": "dish washing", "1": "laundry" }
+    subCategories: {
+      type: Map,
+      of: String,
+      required: true,
+    },
 
     wage: {
       type: Number,

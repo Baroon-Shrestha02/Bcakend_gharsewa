@@ -11,8 +11,8 @@ import { uploadImages } from "../../../utils/imageUploader.js";
 export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
   let {
     name,
-    category,
-    subCategories,
+    category, // now a category NAME string
+    subCategories, // now an array of subcategory NAME strings
     wage,
     description,
     duration,
@@ -38,55 +38,54 @@ export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
     return next(new AppError("All fields are required", 400));
   }
 
+  // Parse subCategories if sent as JSON string (FormData)
   if (subCategories && typeof subCategories === "string") {
-    subCategories = JSON.parse(subCategories);
+    try {
+      subCategories = JSON.parse(subCategories);
+    } catch {
+      return next(new AppError("Invalid subCategories format", 400));
+    }
   }
 
   if (!Array.isArray(subCategories) || subCategories.length === 0) {
     return next(new AppError("At least one subcategory is required", 400));
   }
 
-  // normalize subcategory values
-  subCategories = subCategories
-    .map((item) => item?.trim())
-    .filter((item) => item);
-
-  if (subCategories.length === 0) {
-    return next(new AppError("Valid subcategories are required", 400));
-  }
-
-  // find or create category
-  let existingCategory = await Category.findOne({
-    name: category.trim(),
+  // Look up category by name (case-insensitive)
+  const existingCategory = await Category.findOne({
+    name: { $regex: new RegExp(`^${category.trim()}$`, "i") },
   });
-
   if (!existingCategory) {
-    existingCategory = await Category.create({
-      name: category.trim(),
-    });
+    return next(new AppError(`Category "${category}" does not exist`, 404));
   }
 
-  // find/create subcategories under this category
-  const subCategoryIds = [];
+  // Validate each subcategory by name under the found category
+  const validatedSubCategories = [];
 
   for (const subCatName of subCategories) {
-    let existingSubCategory = await SubCategory.findOne({
-      name: subCatName,
+    const existingSubCategory = await SubCategory.findOne({
+      name: { $regex: new RegExp(`^${subCatName.trim()}$`, "i") },
       category: existingCategory._id,
     });
 
     if (!existingSubCategory) {
-      existingSubCategory = await SubCategory.create({
-        name: subCatName,
-        category: existingCategory._id,
-      });
+      return next(
+        new AppError(
+          `Subcategory "${subCatName}" does not exist under "${existingCategory.name}"`,
+          404,
+        ),
+      );
     }
 
-    subCategoryIds.push(existingSubCategory._id);
+    validatedSubCategories.push(existingSubCategory.name);
   }
 
-  let uploadedImage = [];
+  const subCategoriesMap = {};
+  validatedSubCategories.forEach((name, index) => {
+    subCategoriesMap[index] = name;
+  });
 
+  let uploadedImage = [];
   if (req.files && req.files.image) {
     uploadedImage = await uploadImages(req.files.image);
   }
@@ -94,7 +93,7 @@ export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
   const job = await Job.create({
     name,
     category: existingCategory._id,
-    subCategories: subCategoryIds,
+    subCategories: subCategoriesMap,
     wage,
     description,
     duration,
@@ -108,24 +107,23 @@ export const userCreateJob = asyncErrorHandler(async (req, res, next) => {
     assignedWorkers: [],
   });
 
-  const populatedJob = await Job.findById(job._id)
-    .populate("category", "name")
-    .populate("subCategories", "name");
+  const populatedJob = await Job.findById(job._id).populate("category", "name");
 
   res.status(201).json({
     success: true,
     message: "Job created successfully",
-    job: populatedJob,
+    job: {
+      ...populatedJob.toObject(),
+      subCategories: Object.fromEntries(populatedJob.subCategories),
+    },
   });
 });
-
 // works
 export const getMyJobs = asyncErrorHandler(async (req, res, next) => {
   const userId = req.user.id;
 
   const jobs = await Job.find({ postedBy: userId })
     .populate("category", "name")
-    .populate("subCategories", "name")
     .sort({ createdAt: -1 });
 
   const jobsWithApplications = await Promise.all(
@@ -134,8 +132,14 @@ export const getMyJobs = asyncErrorHandler(async (req, res, next) => {
         job: job._id,
       });
 
+      // Convert Map to plain object { "0": "dish washing", "1": "laundry" }
+      const subCategories = job.subCategories
+        ? Object.fromEntries(job.subCategories)
+        : {};
+
       return {
         ...job.toObject(),
+        subCategories,
         appliedWorkers,
       };
     }),
@@ -173,11 +177,7 @@ export const deleteMyJob = asyncErrorHandler(async (req, res, next) => {
 export const updateMyJob = asyncErrorHandler(async (req, res, next) => {
   const { id } = req.params;
 
-  const job = await Job.findOne({
-    _id: id,
-    postedBy: req.user.id,
-  });
-
+  const job = await Job.findOne({ _id: id, postedBy: req.user.id });
   if (!job) {
     return next(new AppError("Job not found or unauthorized", 404));
   }
@@ -196,8 +196,6 @@ export const updateMyJob = asyncErrorHandler(async (req, res, next) => {
   } = req.body;
 
   if (name) job.name = name;
-  if (category) job.category = category;
-  if (subCategories) job.subCategories = subCategories;
   if (wage) job.wage = wage;
   if (description) job.description = description;
   if (duration) job.duration = duration;
@@ -206,26 +204,66 @@ export const updateMyJob = asyncErrorHandler(async (req, res, next) => {
   if (workTime) job.workTime = workTime;
   if (workersNeeded) job.workersNeeded = workersNeeded;
 
-  // Image update (multiple images)
+  // Resolve category by name if provided
+  if (category) {
+    const existingCategory = await Category.findOne({
+      name: { $regex: new RegExp(`^${category.trim()}$`, "i") },
+    });
+    if (!existingCategory) {
+      return next(new AppError(`Category "${category}" does not exist`, 404));
+    }
+    job.category = existingCategory._id;
+
+    // If category changed, subCategories must also be re-validated
+    if (subCategories) {
+      let parsedSubs = subCategories;
+      if (typeof parsedSubs === "string") {
+        try {
+          parsedSubs = JSON.parse(parsedSubs);
+        } catch {
+          return next(new AppError("Invalid subCategories format", 400));
+        }
+      }
+
+      const validatedSubs = [];
+      for (const subCatName of parsedSubs) {
+        const existingSub = await SubCategory.findOne({
+          name: { $regex: new RegExp(`^${subCatName.trim()}$`, "i") },
+          category: existingCategory._id,
+        });
+        if (!existingSub) {
+          return next(
+            new AppError(
+              `Subcategory "${subCatName}" does not exist under "${existingCategory.name}"`,
+              404,
+            ),
+          );
+        }
+        validatedSubs.push(existingSub.name);
+      }
+
+      const subCategoriesMap = {};
+      validatedSubs.forEach((name, index) => {
+        subCategoriesMap[index] = name;
+      });
+      job.subCategories = subCategoriesMap;
+    }
+  }
+
+  // Image replacement
   if (req.files && req.files.image) {
-    // delete old images
     if (job.image && job.image.length > 0) {
       for (const img of job.image) {
         await cloudinary.v2.uploader.destroy(img.public_id);
       }
     }
-
-    const uploadedImages = [];
-
     const images = Array.isArray(req.files.image)
       ? req.files.image
       : [req.files.image];
-
+    const uploadedImages = [];
     for (const file of images) {
-      const uploaded = await uploadImages(file);
-      uploadedImages.push(uploaded);
+      uploadedImages.push(await uploadImages(file));
     }
-
     job.image = uploadedImages;
   }
 

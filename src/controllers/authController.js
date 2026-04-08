@@ -7,8 +7,8 @@ import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import User from "../models/userModel.js";
 import generateOTP from "../utils/otpGenerate.js";
 import sendEmail from "../utils/sendEmail.js";
+import PendingUser from "../models/PendingUserModel.js";
 
-//register user
 export const registerUser = asyncErrorHandler(async (req, res, next) => {
   const {
     firstname,
@@ -22,6 +22,7 @@ export const registerUser = asyncErrorHandler(async (req, res, next) => {
     experience_years,
   } = req.body;
 
+  // required fields
   if (!firstname || !lastname || !phone || !email || !password) {
     return next(new AppError("Please fill all required fields.", 400));
   }
@@ -29,12 +30,22 @@ export const registerUser = asyncErrorHandler(async (req, res, next) => {
   const allowedRoles = ["user", "worker"];
   const userRole = allowedRoles.includes(role) ? role : "user";
 
+  // check if real user already exists
   const existingUser = await User.findOne({
     $or: [{ email }, { phone }],
   });
-  if (existingUser) return next(new AppError("User already exists.", 400));
+
+  if (existingUser) {
+    return next(new AppError("User already exists.", 400));
+  }
+
+  // remove old pending signup
+  await PendingUser.deleteMany({
+    $or: [{ email }, { phone }],
+  });
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const otp = generateOTP();
 
   const newUserData = {
     firstname,
@@ -44,33 +55,36 @@ export const registerUser = asyncErrorHandler(async (req, res, next) => {
     email,
     password: hashedPassword,
     role: userRole,
+    otp,
+    otpExpire: Date.now() + 5 * 60 * 1000,
   };
 
+  // worker fields
   if (userRole === "worker") {
     if (!skill_type) {
       return next(new AppError("Worker must select a skill type.", 400));
     }
+
     newUserData.skill_type = skill_type;
     newUserData.experience_years = experience_years || 0;
   }
 
-  const user = await User.create(newUserData);
+  // save pending signup
+  const pendingUser = await PendingUser.create(newUserData);
 
-  // generate signup OTP
-  const otp = generateOTP();
-  user.otp = otp;
-  user.otpExpire = Date.now() + 5 * 60 * 1000;
-  await user.save();
-
-  await sendEmail(user.email, "Signup OTP Verification", `Your OTP is ${otp}`);
+  // send OTP email
+  await sendEmail(
+    pendingUser.email,
+    "Signup OTP Verification",
+    `Your OTP is ${otp}`,
+  );
 
   res.status(201).json({
     status: "success",
-    message: "User registered successfully. OTP sent to email.",
+    message: "OTP sent to email. Please verify signup.",
     data: {
-      id: user._id,
-      role: user.role,
-      email: user.email,
+      email: pendingUser.email,
+      role: pendingUser.role,
     },
   });
 });
@@ -79,28 +93,50 @@ export const registerUser = asyncErrorHandler(async (req, res, next) => {
 export const verifySignupOTP = asyncErrorHandler(async (req, res, next) => {
   const { email, otp } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) return next(new AppError("User not found", 404));
+  // find pending signup
+  const pendingUser = await PendingUser.findOne({ email });
 
-  if (user.otp?.toString() !== otp?.toString()) {
+  if (!pendingUser) {
+    return next(new AppError("Signup request expired or not found.", 404));
+  }
+
+  // verify OTP
+  if (pendingUser.otp?.toString() !== otp?.toString()) {
     return next(new AppError("Invalid OTP", 400));
   }
 
-  if (Date.now() > user.otpExpire) {
+  // verify expiry
+  if (Date.now() > pendingUser.otpExpire) {
     return next(new AppError("OTP expired", 400));
   }
 
-  user.emailVerified = true;
-  user.otp = undefined;
-  user.otpExpire = undefined;
-  await user.save();
+  // create real user
+  const user = await User.create({
+    firstname: pendingUser.firstname,
+    middlename: pendingUser.middlename,
+    lastname: pendingUser.lastname,
+    phone: pendingUser.phone,
+    email: pendingUser.email,
+    password: pendingUser.password,
+    role: pendingUser.role,
+    skill_type: pendingUser.skill_type,
+    experience_years: pendingUser.experience_years,
+    emailVerified: true,
+  });
 
-  res.status(200).json({
+  // remove pending signup
+  await PendingUser.deleteOne({ email });
+
+  res.status(201).json({
     status: "success",
     message: "Signup verified successfully",
+    data: {
+      id: user._id,
+      role: user.role,
+      email: user.email,
+    },
   });
 });
-
 // login
 export const login = asyncErrorHandler(async (req, res, next) => {
   const { email, password } = req.body;

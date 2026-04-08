@@ -11,7 +11,7 @@ import workerRoutes from "./routes/workerRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import docRoutes from "./routes/kycRoutes.js";
-
+import categoryRoutes from "./routes/categoryRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
@@ -59,6 +59,7 @@ app.use("/api/booking", bookingRoutes);
 app.use("/api/rating", reviewRoutes);
 app.use("/api/notification", notificationRoutes);
 app.use("/api/documents", docRoutes);
+app.use("/api/category", categoryRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
